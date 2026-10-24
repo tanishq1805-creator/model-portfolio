@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import engine, Base, SessionLocal, upgrade_schema
+from sqlalchemy import inspect, text
 from app.models.seed_data import seed_initial_data
 
 # Import all models so SQLAlchemy creates tables
@@ -30,15 +31,18 @@ from app.api.notifications import router as notifications_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: ensure tables exist and seed initial demo data safely
+    # Startup: ensure tables exist safely without blocking serverless cold starts
     try:
-        Base.metadata.create_all(bind=engine)
-        upgrade_schema()
-        db = SessionLocal()
-        try:
-            seed_initial_data(db)
-        finally:
-            db.close()
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        if "users" not in existing_tables:
+            Base.metadata.create_all(bind=engine)
+            upgrade_schema()
+            db = SessionLocal()
+            try:
+                seed_initial_data(db)
+            finally:
+                db.close()
     except Exception as e:
         print(f"Startup database initialization warning: {e}")
     yield
@@ -96,3 +100,24 @@ def health_check():
         "version": "1.0.0",
         "phase": "Phase 6 - Live Notifications, Multi-Role Dashboards & Demo Presentation Active"
     }
+
+@app.get("/api/debug-db", tags=["Health"])
+def debug_db():
+    try:
+        with engine.connect() as conn:
+            res = conn.execute(text("SELECT 1")).scalar()
+            inspector = inspect(engine)
+            tables = inspector.get_table_names()
+            return {
+                "status": "connected",
+                "select_1": res,
+                "db_dialect": engine.dialect.name,
+                "tables_count": len(tables),
+                "tables": tables
+            }
+    except Exception as e:
+        return {
+            "status": "failed",
+            "error": str(e),
+            "db_url_masked": str(engine.url).split("@")[-1] if "@" in str(engine.url) else "sqlite"
+        }
