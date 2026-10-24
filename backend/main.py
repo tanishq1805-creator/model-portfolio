@@ -6,3 +6,7 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 from app.main import app
+
+# Compatibility aliases for Vercel / AWS Lambda ASGI runners
+handler = app
+application = app

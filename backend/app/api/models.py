@@ -560,7 +560,7 @@ def get_my_verification_requests(
 # ==========================================
 @router.put("/privacy", response_model=MeasurementsSchema)
 def update_measurements_privacy(
-    visibility: str = Query(..., regex="^(public|verified_only|brands_only|private)$"),
+    visibility: str = Query(..., pattern="^(public|verified_only|brands_only|private)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
