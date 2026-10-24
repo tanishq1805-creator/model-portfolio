@@ -30,14 +30,17 @@ from app.api.notifications import router as notifications_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: ensure tables exist and seed initial demo data
-    Base.metadata.create_all(bind=engine)
-    upgrade_schema()
-    db = SessionLocal()
+    # Startup: ensure tables exist and seed initial demo data safely
     try:
-        seed_initial_data(db)
-    finally:
-        db.close()
+        Base.metadata.create_all(bind=engine)
+        upgrade_schema()
+        db = SessionLocal()
+        try:
+            seed_initial_data(db)
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Startup database initialization warning: {e}")
     yield
     # Shutdown logic if needed
 
@@ -58,8 +61,11 @@ app.add_middleware(
 )
 
 # Static Files for Uploads
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+try:
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+except Exception as e:
+    print(f"Uploads directory setup warning: {e}")
 
 # Mount Routers
 app.include_router(auth_router, prefix=settings.API_V1_STR)

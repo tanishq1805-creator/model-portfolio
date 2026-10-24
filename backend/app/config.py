@@ -10,10 +10,15 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
     # Database URL: defaults to local SQLite for zero-config run, seamlessly supports PostgreSQL
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./modelhub.db")
+    # On Vercel serverless, SQLite fallback must use /tmp since root directory is read-only
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL", 
+        "sqlite:////tmp/modelhub.db" if os.getenv("VERCEL") else "sqlite:///./modelhub.db"
+    )
     
     # CORS Origins
     CORS_ORIGINS: List[str] = [
+        "*",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
@@ -22,7 +27,10 @@ class Settings(BaseSettings):
     
     # Storage settings (abstraction layer)
     STORAGE_BACKEND: str = os.getenv("STORAGE_BACKEND", "local")  # local, s3, cloudinary, supabase
-    UPLOAD_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+    UPLOAD_DIR: str = os.getenv(
+        "UPLOAD_DIR",
+        "/tmp/uploads" if os.getenv("VERCEL") else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+    )
     
     # AI settings
     AI_PROVIDER: str = os.getenv("AI_PROVIDER", "gemini")
