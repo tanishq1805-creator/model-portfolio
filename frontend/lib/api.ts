@@ -1,7 +1,20 @@
-// API Client for MODELHUB
+// API Client for CMID MODEL HOUSE
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+// Helper to determine the backend base URL (supports Vercel service binding BACKEND_URL)
+export const getBackendUrl = (): string => {
+  if (typeof window !== "undefined") {
+    // Client-side browser execution: empty string uses relative URLs, or custom env if specified
+    return process.env.NEXT_PUBLIC_BACKEND_URL || "";
+  }
+  // Server-side (RSC / SSR / Functions): prioritize Vercel service binding URL
+  return process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8001";
+};
+
+export const BACKEND_URL = getBackendUrl();
+
+export const API_BASE = typeof window !== "undefined"
+  ? (process.env.NEXT_PUBLIC_API_URL || "/api")
+  : (process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api` : (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8001/api"));
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
