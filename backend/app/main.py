@@ -63,7 +63,8 @@ app.add_middleware(
 # Static Files for Uploads
 try:
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+    if os.path.isdir(settings.UPLOAD_DIR):
+        app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 except Exception as e:
     print(f"Uploads directory setup warning: {e}")
 
@@ -84,6 +85,8 @@ app.include_router(calendar_router, prefix=settings.API_V1_STR)
 app.include_router(finances_router, prefix=settings.API_V1_STR)
 app.include_router(notifications_router, prefix=settings.API_V1_STR)
 
+@app.get("/", tags=["Health"])
+@app.get("/health", tags=["Health"])
 @app.get("/api/health", tags=["Health"])
 def health_check():
     return {
